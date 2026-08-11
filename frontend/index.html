@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yakkasaroy — Yoshlar murojaatlarini tahlil qilish markazi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --navy:#0F2C4C; --navy-2:#16395F; --navy-3:#1E4A78;
+  --green:#1E8A5F; --green-light:#E7F5EE; --green-dark:#166B49;
+  --bg:#F2F6FA; --ink:#152232; --muted:#61728A; --border:#DEE6EF;
+  --amber:#B9782B; --amber-light:#FBF1E3; --red:#B3342A; --red-light:#FAEAE8;
+  --indigo:#4B4B8A; --indigo-light:#ECECF7; --teal:#1E7A8A; --teal-light:#E6F3F6; --gray-light:#EEF1F5;
+  --radius:10px; --shadow:0 1px 2px rgba(15,44,76,.06),0 1px 12px rgba(15,44,76,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3,.font-display{font-family:'Manrope',sans-serif}
+button{font-family:inherit;cursor:pointer} input,select,textarea{font-family:inherit;font-size:14px}
+.chevrons{position:absolute;inset:0;overflow:hidden;pointer-events:none;opacity:.1}
+.auth-wrap{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:860px){.auth-wrap{grid-template-columns:1fr}}
+.auth-left{background:linear-gradient(155deg,var(--navy),var(--navy-2) 55%,var(--navy-3));color:#fff;position:relative;display:flex;flex-direction:column;justify-content:center;padding:56px}
+.auth-left .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#9FC3D8;font-weight:700;margin-bottom:18px}
+.auth-left h1{font-size:32px;line-height:1.18;font-weight:800;margin:0 0 16px;max-width:480px}
+.auth-left p{color:#C7D6E4;font-size:15px;line-height:1.6;max-width:420px}
+.auth-right{display:flex;align-items:center;justify-content:center;padding:32px}
+.auth-card{width:100%;max-width:430px}
+.auth-tabs{display:flex;gap:4px;background:var(--gray-light);padding:4px;border-radius:10px;margin-bottom:26px}
+.auth-tab{flex:1;padding:9px 0;border:none;background:transparent;border-radius:8px;font-weight:700;font-size:13.5px;color:var(--muted)}
+.auth-tab.active{background:#fff;color:var(--navy);box-shadow:var(--shadow)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.field-row{grid-template-columns:1fr}}
+.hint{font-size:12px;color:var(--muted);margin-top:5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:8px;border:1.5px solid transparent;font-weight:700;font-size:13.5px}
+.btn-primary{background:var(--green);color:#fff} .btn-primary:hover{background:var(--green-dark)}
+.btn-block{width:100%} .btn-outline{background:transparent;border-color:var(--border);color:var(--navy)}
+.btn-danger{background:var(--red);color:#fff} .btn-sm{padding:6px 12px;font-size:12.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err-box{background:var(--red-light);color:var(--red);border:1px solid #f0c9c5;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;font-weight:600}
+.ok-box{background:var(--green-light);color:var(--green-dark);border:1px solid #bfe4d3;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:14px;font-weight:600}
+.shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+@media(max-width:900px){.shell{grid-template-columns:1fr}}
+.sidebar{background:var(--navy);color:#fff;padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+@media(max-width:900px){.sidebar{position:fixed;left:-280px;width:250px;z-index:50;transition:left .2s}.sidebar.open{left:0}}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 8px 20px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:14px}
+.brand-mark{width:36px;height:36px;border-radius:9px;background:var(--green);display:flex;align-items:center;justify-content:center;font-family:'Manrope';font-weight:800;font-size:15px}
+.brand-text{font-family:'Manrope';font-weight:800;font-size:13px}
+.brand-text span{display:block;font-weight:500;font-size:10.5px;color:#9FC3D8;margin-top:2px}
+.nav-group-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#7C9BB5;font-weight:700;margin:16px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:#CFE0EE;font-size:13.5px;font-weight:600;margin-bottom:2px;border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:var(--green);color:#fff}
+.nav-badge{margin-left:auto;background:var(--amber);color:#fff;font-size:10.5px;padding:1px 7px;border-radius:20px;font-weight:800}
+.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 26px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10}
+.hamburger{display:none;background:none;border:none;font-size:20px;color:var(--navy)}
+@media(max-width:900px){.hamburger{display:block}}
+.page-title{font-family:'Manrope';font-weight:800;font-size:19px;color:var(--navy)}
+.page-sub{font-size:12.5px;color:var(--muted)}
+.topbar-right{margin-left:auto} .user-chip{display:flex;align-items:center;gap:9px;padding:5px 12px 5px 5px;background:var(--gray-light);border-radius:30px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--navy-3);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;font-family:'Manrope'}
+.user-chip-name{font-size:12.5px;font-weight:700;color:var(--navy)} .user-chip-role{font-size:10.5px;color:var(--muted)}
+.content{padding:24px 26px 60px;max-width:1400px}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-pad{padding:20px}
+.grid{display:grid;gap:16px} .grid-4{grid-template-columns:repeat(4,1fr)} .grid-2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}} @media(max-width:600px){.grid-4,.grid-2{grid-template-columns:1fr}}
+.stat-card{padding:18px 20px;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+.stat-num{font-family:'Manrope';font-size:26px;font-weight:800;color:var(--navy)}
+.stat-label{font-size:12px;color:var(--muted);margin-top:6px;font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:800}
+.tbl-wrap{overflow-x:auto} table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;background:var(--gray-light);color:var(--navy);font-size:11px;text-transform:uppercase;font-weight:800;white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border)} tbody tr:hover{background:#FAFCFE}
+.empty-state{padding:50px 20px;text-align:center;color:var(--muted)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.search-box{position:relative;flex:1;min-width:220px} .search-box input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:8px}
+.search-box .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px}
+.filter-panel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 16px;background:var(--gray-light);border-radius:10px;margin-bottom:16px}
+@media(max-width:900px){.filter-panel{grid-template-columns:repeat(2,1fr)}} @media(max-width:520px){.filter-panel{grid-template-columns:1fr}}
+.filter-panel label{font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px}
+.filter-panel select,.filter-panel input{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12.5px;background:#fff}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,26,40,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff}
+.modal-body{padding:20px 22px} .modal-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.close-x{background:none;border:none;font-size:18px;color:var(--muted);padding:4px 8px;border-radius:6px}
+.toast-stack{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px}
+.toast{padding:12px 16px;border-radius:9px;background:var(--navy);color:#fff;font-size:13px;font-weight:600;min-width:230px}
+.toast.success{background:var(--green-dark)} .toast.error{background:var(--red)}
+.section-title{font-family:'Manrope';font-weight:800;font-size:15px;color:var(--navy);margin:26px 0 12px}
+.pill-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.pill-tab{padding:7px 15px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;color:var(--muted)}
+.pill-tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.chart-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.chart-box h4{margin:0 0 14px;font-size:13px;font-weight:800;color:var(--navy)}
+.chart-canvas-wrap{position:relative;height:260px}
+.pending-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.pending-card{max-width:440px;text-align:center;background:#fff;border:1px solid var(--border);border-radius:14px;padding:38px 30px}
+.pending-ico{width:56px;height:56px;border-radius:50%;background:var(--amber-light);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+.form-sub{font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--green-dark);margin:22px 0 12px;display:flex;align-items:center;gap:8px}
+.form-sub::after{content:"";flex:1;height:1px;background:var(--border)}
+.timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:16px}
+.tl-item{position:relative;padding-bottom:16px}
+.tl-item::before{content:"";position:absolute;left:-21px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--green)}
+.tl-date{font-size:11px;color:var(--muted);font-weight:600} .tl-body{font-size:13px;margin-top:2px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:13px;margin-bottom:4px} .kv b{color:var(--navy)}
+.footer-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:30px;padding-top:16px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============================= SOZLAMALAR ============================= */
+// Backend server manzili. Serverni boshqa joyga joylashtirganingizda shu qatorni o'zgartiring.
+const API_BASE = 'http://localhost:5000/api';
+
+let DB = { mahallas: [], appealTypes: [], users: [], appeals: [], history: [] };
+let session = { token: localStorage.getItem('ymtm_token') || null, user: null };
+let state = { page:'dashboard', authMode:'login', authError:'', authOk:'', users_tab:'kutilmoqda',
+  appeals_search:'', filters:{}, sidebarOpen:false, viewingAppeal:null, viewingAppealData:null,
+  viewingUser:null, editComment:'', statsGranularity:'oy', toasts:[] };
+const charts = {};
+const EMPLOYMENT_OPTS = ["Umumta'lim maktabi o'quvchisi","Akademik litsey yoki professional ta'lim o'quvchisi","Oliy ta'lim muassasasi talabasi","Rasmiy band","Norasmiy band","Vaqtincha ishsiz","Mehnat migranti","Tadbirkor","O'zini o'zi band qilgan","Uyushmagan yosh","Boshqa"];
+const APPEAL_STATUSES = [
+  {k:'yangi',l:'Yangi',c:'indigo'},{k:'korib_chiqilmoqda',l:"Ko'rib chiqilmoqda",c:'amber'},
+  {k:'tashkilotga_yuborildi',l:'Tegishli tashkilotga yuborildi',c:'teal'},{k:'qoshimcha_organilmoqda',l:"Qo'shimcha o'rganilmoqda",c:'amber'},
+  {k:'ijobiy_hal_etildi',l:'Ijobiy hal etildi',c:'green'},{k:'qisman_hal_etildi',l:'Qisman hal etildi',c:'teal'},
+  {k:'rad_etildi',l:'Rad etildi',c:'red'},{k:'yopildi',l:'Yopildi',c:'gray'},{k:'muddati_otgan',l:"Muddati o'tgan",c:'red'}
+];
+
+/* ============================= YORDAMCHI FUNKSIYALAR ============================= */
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear(); }
+function fmtDateTime(iso){ if(!iso) return '—'; const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return fmtDate(iso)+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+function ageFromDob(dob){ if(!dob) return null; const b=new Date(dob), t=new Date(); let a=t.getFullYear()-b.getFullYear(); const m=t.getMonth()-b.getMonth(); if(m<0||(m===0&&t.getDate()<b.getDate())) a--; return a; }
+function ageBucket(age){ if(age==null) return "Noma'lum"; if(age<19) return "14-18"; if(age<25) return "19-24"; if(age<30) return "25-29"; return "30+"; }
+function statusMeta(k){ return APPEAL_STATUSES.find(s=>s.k===k)||APPEAL_STATUSES[0]; }
+function badgeColor(c){ return {navy:['var(--navy)','#fff'],indigo:['var(--indigo-light)','var(--indigo)'],amber:['var(--amber-light)','var(--amber)'],teal:['var(--teal-light)','var(--teal)'],green:['var(--green-light)','var(--green-dark)'],red:['var(--red-light)','var(--red)'],gray:['var(--gray-light)','var(--muted)']}[c]||['var(--gray-light)','var(--muted)']; }
+function statusBadge(k){ const m=statusMeta(k); const[bg,fg]=badgeColor(m.c); return `<span class="badge" style="background:${bg};color:${fg}">${m.l}</span>`; }
+let toastId=0;
+function toast(msg,type){ const id=++toastId; state.toasts.push({id,msg,type:type||'default'}); renderToasts(); setTimeout(()=>{state.toasts=state.toasts.filter(t=>t.id!==id);renderToasts();},3600); }
+function renderToasts(){ let el=document.getElementById('toast-stack'); if(!el){el=document.createElement('div');el.id='toast-stack';el.className='toast-stack';document.body.appendChild(el);} el.innerHTML=state.toasts.map(t=>`<div class="toast ${t.type}">${t.type==='success'?'✓':t.type==='error'?'!':'•'} ${esc(t.msg)}</div>`).join(''); }
+
+/* ============================= API QATLAMI ============================= */
+async function api(path, opts){
+  opts = opts || {};
+  const headers = { 'Content-Type':'application/json' };
+  if(session.token) headers['Authorization'] = 'Bearer ' + session.token;
+  const res = await fetch(API_BASE + path, { ...opts, headers });
+  let data = null;
+  try{ data = await res.json(); }catch(e){}
+  if(!res.ok){ throw new Error((data && data.xato) || 'Server bilan aloqa xatoligi.'); }
+  return data;
+}
+function mapUser(u){ return { id:u.id, familiya:u.familiya, ism:u.ism, otasi:u.otasining_ismi||'', telefon:u.telefon, email:u.email||'', mahalla:u.mahalla_nomi||'', mahallaId:u.mahalla_id, lavozim:u.lavozim||'', login:u.login, rol:u.rol, holat:u.holat, radSababi:u.rad_sababi||'', createdAt:u.created_at }; }
+function mapAppeal(a){ return {
+  id:a.id, raqam:a.tartib_raqami, sana:a.sana, mahalla:a.mahalla_nomi, mahallaId:a.mahalla_id,
+  murojaatchi:{familiya:a.m_familiya, ism:a.m_ism, otasi:a.m_otasining_ismi, tugilganSana:a.m_tugilgan_sana, jinsi:a.m_jinsi, telefon:a.m_telefon, manzil:a.m_manzil},
+  bandlik:a.bandlik_holati, bandlikIzoh:a.bandlik_izoh, turi:a.turi_nomi, turiId:a.turi_id, mazmuni:a.mazmuni,
+  qabulQildi: a.yetakchi_familiya ? (a.yetakchi_familiya+' '+a.yetakchi_ism) : '',
+  masulTashkilot:a.masul_tashkilot, muddat:a.korib_chiqish_muddati, holat:a.holat,
+  amalgaOshirilganIshlar:a.amalga_oshirilgan_ishlar, yakuniyNatija:a.yakuniy_natija, fayl:a.fayl_nomi,
+  tarix:(a.tarix||[]).map(t=>({sana:t.sana, foydalanuvchi:(t.familiya?t.familiya+' '+t.ism:'—'), holat:t.holat, izoh:t.izoh}))
+}; }
+
+async function loadPublicData(){
+  try{ DB.mahallas = await api('/mahallalar'); }catch(e){ DB.mahallas=[]; }
+  try{ DB.appealTypes = await api('/turlari'); }catch(e){ DB.appealTypes=[]; }
+}
+function buildAppealsQuery(){
+  const f=state.filters||{}, p=new URLSearchParams();
+  if(f.mahalla) p.set('mahalla_id',f.mahalla);
+  if(f.turi) p.set('turi_id',f.turi);
+  if(f.holat) p.set('holat',f.holat);
+  if(f.bandlik) p.set('bandlik_holati',f.bandlik);
+  if(f.jins) p.set('jins',f.jins);
+  if(f.dan) p.set('dan',f.dan);
+  if(f.gacha) p.set('gacha',f.gacha);
+  if(state.appeals_search) p.set('qidiruv',state.appeals_search);
+  return p.toString();
+}
+async function fetchAppeals(){
+  try{ const raw = await api('/appeals?'+buildAppealsQuery()); DB.appeals = raw.map(mapAppeal); }
+  catch(e){ toast(e.message,'error'); DB.appeals=[]; }
+}
+async function fetchUsers(holat){
+  try{ const raw = await api('/users?holat='+encodeURIComponent(holat)); DB.users = raw.map(mapUser); }
+  catch(e){ toast(e.message,'error'); DB.users=[]; }
+}
+async function fetchHistory(){
+  try{ const raw = await api('/history'); DB.history = raw.map(h=>({sana:h.sana, foydalanuvchi:h.familiya?(h.familiya+' '+h.ism):'Tizim', amal:h.amal, tafsilot:h.tafsilot||''})); }
+  catch(e){ toast(e.message,'error'); DB.history=[]; }
+}
+
+/* ============================= AUTH ============================= */
+async function doLogin(){
+  const login=document.getElementById('li-login').value.trim();
+  const parol=document.getElementById('li-parol').value;
+  if(!login||!parol){ state.authError='Login va parolni kiriting.'; return render(); }
+  try{
+    const r = await api('/auth/login', {method:'POST', body:JSON.stringify({login,parol})});
+    session.token = r.token; localStorage.setItem('ymtm_token', r.token);
+    const me = await api('/users/men'); session.user = mapUser(me);
+    state.authError=''; state.page='dashboard'; render();
+  }catch(e){ state.authError = e.message; render(); }
+}
+async function doLogout(){ session.token=null; session.user=null; localStorage.removeItem('ymtm_token'); state.page='dashboard'; render(); }
+async function doRegister(){
+  const g=id=>document.getElementById(id).value.trim();
+  const body={ familiya:g('r-familiya'), ism:g('r-ism'), otasining_ismi:g('r-otasi'), telefon:g('r-telefon'),
+    email:g('r-email'), mahalla_id:document.getElementById('r-mahalla').value, lavozim:g('r-lavozim'),
+    login:g('r-login'), parol:document.getElementById('r-parol').value };
+  const parol2=document.getElementById('r-parol2').value;
+  if(!body.familiya||!body.ism||!body.telefon||!body.mahalla_id||!body.lavozim||!body.login||!body.parol){ state.authError="Barcha majburiy maydonlarni to'ldiring."; return render(); }
+  if(body.parol!==parol2){ state.authError='Parollar mos kelmadi.'; return render(); }
+  try{
+    await api('/auth/register',{method:'POST', body:JSON.stringify(body)});
+    state.authError=''; state.authOk="Arizangiz yuborildi. Administrator tasdiqlashini kuting."; state.authMode='login'; render();
+  }catch(e){ state.authError=e.message; render(); }
+}
+
+/* ============================= ADMIN: FOYDALANUVCHILAR ============================= */
+async function approveUser(id){ try{ await api('/users/'+id+'/approve',{method:'PUT'}); toast('Tasdiqlandi','success'); await fetchUsers(state.users_tab); render(); }catch(e){ toast(e.message,'error'); } }
+async function blockUser(id){ try{ await api('/users/'+id+'/block',{method:'PUT'}); toast('Bloklandi','success'); await fetchUsers(state.users_tab); render(); }catch(e){ toast(e.message,'error'); } }
+async function reactivateUser(id){ try{ await api('/users/'+id+'/reactivate',{method:'PUT'}); toast('Qayta faollashtirildi','success'); await fetchUsers(state.users_tab); render(); }catch(e){ toast(e.message,'error'); } }
+function rejectUserPrompt(id){ state.viewingUser={id}; state.editComment=''; render(); }
+async function confirmReject(){
+  try{ await api('/users/'+state.viewingUser.id+'/reject',{method:'PUT', body:JSON.stringify({sabab:state.editComment})});
+    state.viewingUser=null; toast('Rad etildi','success'); await fetchUsers(state.users_tab); render();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+/* ============================= MUROJAATLAR ============================= */
+async function createAppeal(){
+  const g=id=>document.getElementById(id).value.trim();
+  const emp=document.getElementById('a-bandlik').value;
+  const body={ m_familiya:g('a-familiya'), m_ism:g('a-ism'), m_otasining_ismi:g('a-otasi'),
+    m_tugilgan_sana:g('a-tugilgan'), m_jinsi:document.getElementById('a-jinsi').value, m_telefon:g('a-telefon'),
+    m_manzil:g('a-manzil'), bandlik_holati:emp, bandlik_izoh: emp==='Boshqa'?g('a-bandlik-izoh'):'',
+    turi_id:document.getElementById('a-turi').value, mazmuni:g('a-mazmun'), masul_tashkilot:g('a-masul'),
+    korib_chiqish_muddati:g('a-muddat')||null, fayl_nomi:g('a-fayl') };
+  if(!body.m_familiya||!body.m_ism||!body.m_tugilgan_sana||!body.m_telefon||!body.mazmuni||!body.turi_id){ toast("Majburiy maydonlarni to'ldiring",'error'); return; }
+  try{
+    await api('/appeals',{method:'POST', body:JSON.stringify(body)});
+    toast("Murojaat muvaffaqiyatli ro'yxatga olindi",'success');
+    state.page='appeals-list'; await fetchAppeals(); render();
+  }catch(e){ toast(e.message,'error'); }
+}
+async function openAppealDetail(id){
+  try{ const raw = await api('/appeals/'+id); state.viewingAppeal=id; state.viewingAppealData=mapAppeal(raw); render(); }
+  catch(e){ toast(e.message,'error'); }
+}
+function closeAppealDetail(){ state.viewingAppeal=null; state.viewingAppealData=null; render(); }
+async function updateAppealDetail(){
+  const body={ holat:document.getElementById('d-holat').value, amalga_oshirilgan_ishlar:document.getElementById('d-ishlar').value.trim(),
+    yakuniy_natija:document.getElementById('d-natija').value.trim(), izoh:document.getElementById('d-izoh').value.trim() };
+  try{
+    await api('/appeals/'+state.viewingAppeal,{method:'PUT', body:JSON.stringify(body)});
+    toast("Ma'lumotlar saqlandi",'success');
+    const raw = await api('/appeals/'+state.viewingAppeal); state.viewingAppealData=mapAppeal(raw);
+    await fetchAppeals(); render();
+  }catch(e){ toast(e.message,'error'); }
+}
+
+/* ============================= SOZLAMALAR: TURLAR / MAHALLALAR ============================= */
+async function addType(){ const v=document.getElementById('new-type').value.trim(); if(!v) return; try{ await api('/turlari',{method:'POST', body:JSON.stringify({nomi:v})}); await loadPublicData(); toast("Tur qo'shildi",'success'); render(); }catch(e){ toast(e.message,'error'); } }
+async function toggleType(id){ try{ await api('/turlari/'+id+'/toggle',{method:'PUT'}); await loadPublicData(); render(); }catch(e){ toast(e.message,'error'); } }
+async function removeType(id){ try{ await api('/turlari/'+id,{method:'DELETE'}); await loadPublicData(); render(); }catch(e){ toast(e.message,'error'); } }
+async function addMahalla(){ const v=document.getElementById('new-mahalla').value.trim(); if(!v) return; try{ await api('/mahallalar',{method:'POST', body:JSON.stringify({nomi:v})}); await loadPublicData(); toast("Mahalla qo'shildi",'success'); render(); }catch(e){ toast(e.message,'error'); } }
+async function removeMahalla(id){ try{ await api('/mahallalar/'+id,{method:'DELETE'}); await loadPublicData(); render(); }catch(e){ toast(e.message,'error'); } }
+
+/* ============================= PROFIL ============================= */
+async function saveProfile(){
+  try{ await api('/users/men/profil',{method:'PUT', body:JSON.stringify({telefon:document.getElementById('p-telefon').value.trim(), email:document.getElementById('p-email').value.trim()})});
+    const me=await api('/users/men'); session.user=mapUser(me); toast("Ma'lumotlar yangilandi",'success'); render();
+  }catch(e){ toast(e.message,'error'); }
+}
+async function changePassword(){
+  const eski=document.getElementById('pw-eski').value, yangi=document.getElementById('pw-yangi').value, yangi2=document.getElementById('pw-yangi2').value;
+  const msgEl=document.getElementById('pw-msg');
+  if(yangi!==yangi2){ msgEl.innerHTML='<div class="err-box">Yangi parollar mos kelmadi.</div>'; return; }
+  try{ await api('/users/men/parol',{method:'PUT', body:JSON.stringify({eski_parol:eski, yangi_parol:yangi})});
+    msgEl.innerHTML='<div class="ok-box">Parol muvaffaqiyatli o\'zgartirildi.</div>';
+  }catch(e){ msgEl.innerHTML=`<div class="err-box">${esc(e.message)}</div>`; }
+}
+
+/* ============================= EXCEL EKSPORT ============================= */
+function exportExcel(list){
+  const rows=list.map((a,i)=>({ '№':i+1,'Murojaat ID':a.raqam,'Sana':fmtDate(a.sana),'Mahalla':a.mahalla,'Yoshlar yetakchisi':a.qabulQildi,
+    'F.I.O':a.murojaatchi.familiya+' '+a.murojaatchi.ism+' '+(a.murojaatchi.otasi||''),'Tug\'ilgan sana':fmtDate(a.murojaatchi.tugilganSana),
+    'Yoshi':ageFromDob(a.murojaatchi.tugilganSana),'Jinsi':a.murojaatchi.jinsi,'Manzil':a.murojaatchi.manzil,'Telefon':a.murojaatchi.telefon,
+    'Bandlik holati':a.bandlik,'Murojaat turi':a.turi,'Murojaat mazmuni':a.mazmuni,'Holati':statusMeta(a.holat).l,
+    'Mas\'ul ijrochi':a.masulTashkilot,'Ko\'rib chiqish muddati':a.muddat?fmtDate(a.muddat):'','Amalga oshirilgan ishlar':a.amalgaOshirilganIshlar,'Yakuniy natija':a.yakuniyNatija }));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Murojaatlar');
+  XLSX.writeFile(wb,'murojaatlar_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Excel fayl yuklab olindi','success');
+}
+
+/* ============================= NAVIGATSIYA ============================= */
+async function setPage(p){
+  if(p==='__logout'){ await doLogout(); return; }
+  state.page=p; state.sidebarOpen=false;
+  if(p==='appeals-list'||p==='dashboard'||p==='stats'||p==='reports') await fetchAppeals();
+  if(p==='users') await fetchUsers(state.users_tab);
+  if(p==='history') await fetchHistory();
+  render();
+}
+function toggleSidebar(){ state.sidebarOpen=!state.sidebarOpen; render(); }
+
+/* ============================= RENDER: AUTH ============================= */
+function chevronSvg(color){ return `<div class="chevrons"><svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">${Array.from({length:9}).map((_,i)=>`<polyline points="-20,${i*55} 60,${i*55+27} -20,${i*55+54}" fill="none" stroke="${color}" stroke-width="2"/>`).join('')}</svg></div>`; }
+function renderAuth(){
+  document.getElementById('app').innerHTML = `
+  <div class="auth-wrap">
+    <div class="auth-left">${chevronSvg('#ffffff')}
+      <div class="eyebrow">Yakkasaroy tumani</div>
+      <h1>Yoshlar murojaatlarini tahlil qilish markazi</h1>
+      <p>Mahallalarda faoliyat yurituvchi yoshlar yetakchilari uchun yagona elektron murojaatlar tizimi.</p>
+    </div>
+    <div class="auth-right"><div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab ${state.authMode==='login'?'active':''}" onclick="state.authMode='login';state.authError='';render()">Tizimga kirish</button>
+        <button class="auth-tab ${state.authMode==='register'?'active':''}" onclick="state.authMode='register';state.authError='';state.authOk='';render()">Ro'yxatdan o'tish</button>
+      </div>
+      ${state.authError?`<div class="err-box">${esc(state.authError)}</div>`:''}
+      ${state.authOk?`<div class="ok-box">${esc(state.authOk)}</div>`:''}
+      ${state.authMode==='login'?renderLoginForm():renderRegisterForm()}
+    </div></div>
+  </div>`;
+}
+function renderLoginForm(){ return `
+  <div class="field"><label>Login</label><input id="li-login"></div>
+  <div class="field"><label>Parol</label><input id="li-parol" type="password"></div>
+  <button class="btn btn-primary btn-block" onclick="doLogin()">Kirish</button>`; }
+function renderRegisterForm(){ return `
+  <div class="field-row"><div class="field"><label>Familiyasi *</label><input id="r-familiya"></div><div class="field"><label>Ismi *</label><input id="r-ism"></div></div>
+  <div class="field"><label>Otasining ismi</label><input id="r-otasi"></div>
+  <div class="field-row"><div class="field"><label>Telefon raqami *</label><input id="r-telefon" placeholder="+998 XX XXX XX XX"></div><div class="field"><label>Elektron pochta</label><input id="r-email" type="email"></div></div>
+  <div class="field"><label>Faoliyat yuritayotgan mahalla *</label><select id="r-mahalla"><option value="">Tanlang</option>${DB.mahallas.map(m=>`<option value="${m.id}">${esc(m.nomi)}</option>`).join('')}</select></div>
+  <div class="field"><label>Lavozimi *</label><input id="r-lavozim"></div>
+  <div class="field"><label>Login *</label><input id="r-login"></div>
+  <div class="field-row"><div class="field"><label>Parol *</label><input id="r-parol" type="password"></div><div class="field"><label>Tasdiqlash *</label><input id="r-parol2" type="password"></div></div>
+  <button class="btn btn-primary btn-block" onclick="doRegister()">Ro'yxatdan o'tish</button>`; }
+
+function renderPendingScreen(){
+  const u=session.user;
+  const map={ kutilmoqda:{ico:'⏳',title:'Tasdiqlash kutilmoqda',text:'Arizangiz administrator tomonidan ko\'rib chiqilmoqda.'},
+    rad_etilgan:{ico:'✕',title:'Ariza rad etildi',text:'Afsuski, arizangiz rad etildi.'+(u.radSababi?' Sabab: '+u.radSababi:'')},
+    bloklangan:{ico:'⊘',title:'Hisob bloklangan',text:'Hisobingiz administrator tomonidan bloklangan.'} };
+  const m=map[u.holat]||map.kutilmoqda;
+  document.getElementById('app').innerHTML = `<div class="pending-screen"><div class="pending-card">
+    <div class="pending-ico">${m.ico}</div><h2 style="margin:0 0 8px;color:var(--navy)">${m.title}</h2>
+    <p style="color:var(--muted);font-size:14px">${esc(m.text)}</p>
+    <button class="btn btn-outline" style="margin-top:18px" onclick="doLogout()">Chiqish</button></div></div>`;
+}
+
+/* ============================= SIDEBAR / TOPBAR ============================= */
+function navItem(page,ico,label,badge){ return `<button class="nav-item ${state.page===page?'active':''}" onclick="setPage('${page}')"><span>${ico}</span>${label}${badge?`<span class="nav-badge">${badge}</span>`:''}</button>`; }
+function sidebarHtml(){
+  const isAdmin=session.user.rol==='admin'; let items='';
+  if(isAdmin){ items+=`<div class="nav-group-label">Boshqaruv</div>`+navItem('dashboard','▣','Boshqaruv paneli')+navItem('users','◔','Foydalanuvchilar')+navItem('appeals-list','▤','Barcha murojaatlar')
+    +`<div class="nav-group-label">Tahlil</div>`+navItem('stats','▥','Statistika')+navItem('reports','⇩','Hisobot / Excel')
+    +`<div class="nav-group-label">Sozlamalar</div>`+navItem('types','▦','Murojaat turlari')+navItem('mahallas','⌂','Mahallalar')+navItem('history','◷','Harakatlar tarixi');
+  } else { items+=`<div class="nav-group-label">Kabinet</div>`+navItem('dashboard','▣','Bosh sahifa')+navItem('new-appeal','＋','Yangi murojaat')+navItem('appeals-list','▤','Murojaatlar ro\'yxati')+navItem('stats','▥','Statistika')
+    +`<div class="nav-group-label">Profil</div>`+navItem('profile','◍','Shaxsiy ma\'lumotlar')+navItem('password','⚿','Parolni o\'zgartirish'); }
+  return `<div class="sidebar ${state.sidebarOpen?'open':''}">
+    <div class="brand"><div class="brand-mark">YM</div><div class="brand-text">Yoshlar murojaatlari<span>Yakkasaroy tumani</span></div></div>
+    ${items}<div class="sidebar-foot">${navItem('__logout','⏻','Tizimdan chiqish')}</div></div>`;
+}
+function topbarHtml(){
+  const u=session.user;
+  const titles={dashboard:['Bosh sahifa',''],'new-appeal':['Yangi murojaat kiritish',''],'appeals-list':['Murojaatlar ro\'yxati',''],stats:['Statistika',''],
+    reports:['Hisobot',''],types:['Murojaat turlari',''],mahallas:['Mahallalar',''],history:['Harakatlar tarixi',''],users:['Foydalanuvchilar',''],profile:['Shaxsiy ma\'lumotlar',''],password:['Parolni o\'zgartirish','']};
+  const t=titles[state.page]||['',''];
+  return `<div class="topbar"><button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div><div class="page-title">${t[0]}</div></div>
+    <div class="topbar-right"><div class="user-chip"><div class="avatar">${(u.ism[0]||'')+(u.familiya[0]||'')}</div>
+    <div><div class="user-chip-name">${esc(u.familiya)} ${esc(u.ism)}</div><div class="user-chip-role">${u.rol==='admin'?'Administrator':esc(u.mahalla)}</div></div></div></div></div>`;
+}
+
+/* ============================= SAHIFALAR (avvalgisi bilan bir xil render mantiqi) ============================= */
+function renderDashboard(){
+  const list=DB.appeals, total=list.length, isAdmin=session.user.rol==='admin';
+  const yangi=list.filter(a=>a.holat==='yangi').length;
+  const korib=list.filter(a=>['korib_chiqilmoqda','tashkilotga_yuborildi','qoshimcha_organilmoqda'].includes(a.holat)).length;
+  const ijobiy=list.filter(a=>a.holat==='ijobiy_hal_etildi').length, radEt=list.filter(a=>a.holat==='rad_etildi').length, muddOtgan=list.filter(a=>a.holat==='muddati_otgan').length;
+  const stat=(ico,num,label,bg,fg)=>`<div class="stat-card"><div class="stat-num">${num}</div><div class="stat-label">${label}</div></div>`;
+  let html=`<div class="grid grid-4">${stat('▤',total,'Jami murojaatlar')}${stat('●',yangi,'Yangi murojaatlar')}${stat('◔',korib,'Ko\'rib chiqilmoqda')}${stat('✓',ijobiy,'Ijobiy hal etilgan')}${stat('✕',radEt,'Rad etilgan')}${stat('!',muddOtgan,'Muddati o\'tgan')}</div>`;
+  html+=`<div class="section-title">So'nggi murojaatlar</div><div class="card"><div class="tbl-wrap"><table><thead><tr><th>№</th><th>F.I.O</th><th>Mahalla</th><th>Turi</th><th>Sana</th><th>Holati</th></tr></thead><tbody>
+  ${list.slice(0,8).map(a=>`<tr style="cursor:pointer" onclick="openAppealDetail(${a.id})"><td>№${a.raqam}</td><td>${esc(a.murojaatchi.familiya)} ${esc(a.murojaatchi.ism)}</td><td>${esc(a.mahalla)}</td><td>${esc(a.turi)}</td><td>${fmtDate(a.sana)}</td><td>${statusBadge(a.holat)}</td></tr>`).join('')||`<tr><td colspan="6"><div class="empty-state">Murojaatlar topilmadi</div></td></tr>`}
+  </tbody></table></div></div>`;
+  return html;
+}
+function renderNewAppealForm(){
+  const activeTypes=DB.appealTypes.filter(t=>t.faol);
+  return `<div class="card card-pad">
+  <div class="form-sub">Murojaatchining shaxsiy ma'lumotlari</div>
+  <div class="field-row"><div class="field"><label>Familiyasi *</label><input id="a-familiya"></div><div class="field"><label>Ismi *</label><input id="a-ism"></div></div>
+  <div class="field-row"><div class="field"><label>Otasining ismi</label><input id="a-otasi"></div><div class="field"><label>Tug'ilgan sanasi *</label><input id="a-tugilgan" type="date"></div></div>
+  <div class="field-row"><div class="field"><label>Jinsi *</label><select id="a-jinsi"><option>Erkak</option><option>Ayol</option></select></div><div class="field"><label>Telefon raqami *</label><input id="a-telefon"></div></div>
+  <div class="field"><label>Yashash manzili</label><input id="a-manzil"></div>
+  <div class="form-sub">Bandlik holati</div>
+  <div class="field-row"><div class="field"><label>Hozirgi kundagi bandligi *</label><select id="a-bandlik" onchange="document.getElementById('bandlik-izoh-wrap').style.display=this.value==='Boshqa'?'block':'none'">${EMPLOYMENT_OPTS.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div><div class="field" id="bandlik-izoh-wrap" style="display:none"><label>Qo'shimcha izoh</label><input id="a-bandlik-izoh"></div></div>
+  <div class="form-sub">Murojaat ma'lumotlari</div>
+  <div class="field-row"><div class="field"><label>Murojaat turi *</label><select id="a-turi">${activeTypes.map(t=>`<option value="${t.id}">${esc(t.nomi)}</option>`).join('')}</select></div><div class="field"><label>Ko'rib chiqish muddati</label><input id="a-muddat" type="date"></div></div>
+  <div class="field"><label>Murojaat mazmuni *</label><textarea id="a-mazmun" rows="4"></textarea></div>
+  <div class="field-row"><div class="field"><label>Mas'ul tashkilot</label><input id="a-masul"></div><div class="field"><label>Fayl / hujjat izohi</label><input id="a-fayl"></div></div>
+  <button class="btn btn-primary" onclick="createAppeal()">Murojaatni ro'yxatga olish</button></div>`;
+}
+function renderAppealsList(){
+  const isAdmin=session.user.rol==='admin', list=DB.appeals, f=state.filters||{};
+  return `<div class="toolbar"><div class="search-box"><span class="ico">⌕</span><input placeholder="Qidirish..." value="${esc(state.appeals_search)}" oninput="state.appeals_search=this.value" onkeyup="if(event.key==='Enter'){fetchAppeals().then(render)}"></div>
+  <button class="btn btn-outline btn-sm" onclick="fetchAppeals().then(render)">Qidirish</button><button class="btn btn-primary btn-sm" onclick="exportExcel(DB.appeals)">⇩ Excel</button></div>
+  <div class="filter-panel">
+  ${isAdmin?`<div><label>Mahalla</label><select onchange="state.filters.mahalla=this.value;fetchAppeals().then(render)"><option value="">Barchasi</option>${DB.mahallas.map(m=>`<option value="${m.id}" ${f.mahalla==m.id?'selected':''}>${esc(m.nomi)}</option>`).join('')}</select></div>`:''}
+  <div><label>Murojaat turi</label><select onchange="state.filters.turi=this.value;fetchAppeals().then(render)"><option value="">Barchasi</option>${DB.appealTypes.map(t=>`<option value="${t.id}" ${f.turi==t.id?'selected':''}>${esc(t.nomi)}</option>`).join('')}</select></div>
+  <div><label>Holati</label><select onchange="state.filters.holat=this.value;fetchAppeals().then(render)"><option value="">Barchasi</option>${APPEAL_STATUSES.map(s=>`<option value="${s.k}" ${f.holat===s.k?'selected':''}>${s.l}</option>`).join('')}</select></div>
+  <div><label>Jinsi</label><select onchange="state.filters.jins=this.value;fetchAppeals().then(render)"><option value="">Barchasi</option><option ${f.jins==='Erkak'?'selected':''}>Erkak</option><option ${f.jins==='Ayol'?'selected':''}>Ayol</option></select></div>
+  <div><label>Sana (dan)</label><input type="date" value="${f.dan||''}" onchange="state.filters.dan=this.value;fetchAppeals().then(render)"></div>
+  <div><label>Sana (gacha)</label><input type="date" value="${f.gacha||''}" onchange="state.filters.gacha=this.value;fetchAppeals().then(render)"></div>
+  </div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>№</th><th>F.I.O</th>${isAdmin?'<th>Mahalla</th>':''}<th>Turi</th><th>Sana</th><th>Holati</th><th></th></tr></thead><tbody>
+  ${list.map(a=>`<tr><td>№${a.raqam}</td><td>${esc(a.murojaatchi.familiya)} ${esc(a.murojaatchi.ism)}</td>${isAdmin?`<td>${esc(a.mahalla)}</td>`:''}<td>${esc(a.turi)}</td><td>${fmtDate(a.sana)}</td><td>${statusBadge(a.holat)}</td><td><button class="btn btn-outline btn-sm" onclick="openAppealDetail(${a.id})">Ko'rish</button></td></tr>`).join('')||`<tr><td colspan="7"><div class="empty-state">Murojaatlar topilmadi</div></td></tr>`}
+  </tbody></table></div></div>`;
+}
+function renderAppealDetailModal(){
+  const ap=state.viewingAppealData; if(!ap) return ''; const m=ap.murojaatchi;
+  return `<div class="modal-overlay" onclick="if(event.target===this)closeAppealDetail()"><div class="modal">
+  <div class="modal-head"><h3>Murojaat №${ap.raqam}</h3><button class="close-x" onclick="closeAppealDetail()">✕</button></div>
+  <div class="modal-body">
+  <div class="form-sub">Murojaatchi</div>
+  <div class="kv"><b>F.I.O</b><span>${esc(m.familiya)} ${esc(m.ism)} ${esc(m.otasi||'')}</span></div>
+  <div class="kv"><b>Tug'ilgan sana</b><span>${fmtDate(m.tugilganSana)} (${ageFromDob(m.tugilganSana)??'—'} yosh)</span></div>
+  <div class="kv"><b>Telefon</b><span>${esc(m.telefon)}</span></div>
+  <div class="kv"><b>Mahalla</b><span>${esc(ap.mahalla)}</span></div>
+  <div class="kv"><b>Bandlik</b><span>${esc(ap.bandlik)}</span></div>
+  <div class="form-sub">Murojaat</div>
+  <div class="kv"><b>Turi</b><span>${esc(ap.turi)}</span></div>
+  <div class="kv"><b>Qabul qildi</b><span>${esc(ap.qabulQildi)}</span></div>
+  <div style="margin-top:10px"><b style="font-size:13px;color:var(--navy)">Mazmuni:</b><p style="font-size:13px">${esc(ap.mazmuni)}</p></div>
+  <div class="form-sub">Holatni yangilash</div>
+  <div class="field-row"><div class="field"><label>Holati</label><select id="d-holat">${APPEAL_STATUSES.map(s=>`<option value="${s.k}" ${ap.holat===s.k?'selected':''}>${s.l}</option>`).join('')}</select></div><div class="field"><label>Izoh</label><input id="d-izoh"></div></div>
+  <div class="field"><label>Amalga oshirilgan ishlar</label><textarea id="d-ishlar" rows="2">${esc(ap.amalgaOshirilganIshlar||'')}</textarea></div>
+  <div class="field"><label>Yakuniy natija</label><textarea id="d-natija" rows="2">${esc(ap.yakuniyNatija||'')}</textarea></div>
+  <div class="form-sub">Holatlar tarixi</div>
+  <div class="timeline">${ap.tarix.map(t=>`<div class="tl-item"><div class="tl-date">${fmtDateTime(t.sana)} — ${esc(t.foydalanuvchi)}</div><div class="tl-body">${statusBadge(t.holat)} ${esc(t.izoh||'')}</div></div>`).join('')}</div>
+  </div><div class="modal-foot"><button class="btn btn-outline" onclick="closeAppealDetail()">Yopish</button><button class="btn btn-primary" onclick="updateAppealDetail()">Saqlash</button></div></div></div>`;
+}
+function renderUsers(){
+  const tabs=[['kutilmoqda','Kutilmoqda'],['tasdiqlangan','Tasdiqlangan'],['bloklangan','Bloklangan'],['rad_etilgan','Rad etilgan']];
+  return `<div class="pill-tabs">${tabs.map(([k,l])=>`<button class="pill-tab ${state.users_tab===k?'active':''}" onclick="state.users_tab='${k}';fetchUsers('${k}').then(render)">${l}</button>`).join('')}</div>
+  <div class="card"><div class="tbl-wrap"><table><thead><tr><th>F.I.O</th><th>Mahalla</th><th>Lavozim</th><th>Telefon</th><th>Login</th><th></th></tr></thead><tbody>
+  ${DB.users.map(u=>`<tr><td>${esc(u.familiya)} ${esc(u.ism)}</td><td>${esc(u.mahalla)}</td><td>${esc(u.lavozim)}</td><td>${esc(u.telefon)}</td><td>${esc(u.login)}</td>
+  <td>${state.users_tab==='kutilmoqda'?`<button class="btn btn-primary btn-sm" onclick="approveUser(${u.id})">Tasdiqlash</button> <button class="btn btn-danger btn-sm" onclick="rejectUserPrompt(${u.id})">Rad etish</button>`:''}
+  ${state.users_tab==='tasdiqlangan'?`<button class="btn btn-danger btn-sm" onclick="blockUser(${u.id})">Bloklash</button>`:''}
+  ${state.users_tab==='bloklangan'?`<button class="btn btn-primary btn-sm" onclick="reactivateUser(${u.id})">Qayta faollashtirish</button>`:''}
+  </td></tr>`).join('')||`<tr><td colspan="6"><div class="empty-state">Bo'sh</div></td></tr>`}</tbody></table></div></div>`;
+}
+function renderRejectModal(){
+  return `<div class="modal-overlay"><div class="modal" style="max-width:420px"><div class="modal-head"><h3>Arizani rad etish</h3><button class="close-x" onclick="state.viewingUser=null;render()">✕</button></div>
+  <div class="modal-body"><textarea rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px" oninput="state.editComment=this.value" placeholder="Sabab..."></textarea></div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="state.viewingUser=null;render()">Bekor qilish</button><button class="btn btn-danger" onclick="confirmReject()">Rad etish</button></div></div></div>`;
+}
+function renderStats(){
+  const list=DB.appeals, isAdmin=session.user.rol==='admin', total=list.length;
+  const byMahalla={}; list.forEach(a=>byMahalla[a.mahalla]=(byMahalla[a.mahalla]||0)+1);
+  const byType={}; list.forEach(a=>byType[a.turi]=(byType[a.turi]||0)+1);
+  const byStatus={}; list.forEach(a=>byStatus[a.holat]=(byStatus[a.holat]||0)+1);
+  const byAge={}; list.forEach(a=>{const b=ageBucket(ageFromDob(a.murojaatchi.tugilganSana));byAge[b]=(byAge[b]||0)+1;});
+  const gran=state.statsGranularity, dynMap={};
+  list.forEach(a=>{ const d=new Date(a.sana); let key = gran==='kun'?fmtDate(a.sana): gran==='yil'?String(d.getFullYear()): d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); dynMap[key]=(dynMap[key]||0)+1; });
+  const dynKeys=Object.keys(dynMap).sort();
+  const html = `<div class="grid grid-4" style="margin-bottom:20px">
+  <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">Jami murojaatlar</div></div>
+  <div class="stat-card"><div class="stat-num">${total?Math.round((byStatus['ijobiy_hal_etildi']||0)/total*100):0}%</div><div class="stat-label">Ijobiy hal etilgan</div></div>
+  <div class="stat-card"><div class="stat-num">${byStatus['muddati_otgan']||0}</div><div class="stat-label">Muddati o'tgan</div></div>
+  <div class="stat-card"><div class="stat-num">${Object.keys(byMahalla).length}</div><div class="stat-label">Faol mahallalar</div></div></div>
+  <div class="grid grid-2">
+  ${isAdmin?`<div class="chart-box"><h4>Mahallalar kesimida</h4><div class="chart-canvas-wrap"><canvas id="chart-mahalla"></canvas></div></div>`:''}
+  <div class="chart-box"><h4>Murojaat turlari</h4><div class="chart-canvas-wrap"><canvas id="chart-type"></canvas></div></div>
+  <div class="chart-box"><h4>Holatlar</h4><div class="chart-canvas-wrap"><canvas id="chart-status"></canvas></div></div>
+  <div class="chart-box"><h4>Yosh toifalari</h4><div class="chart-canvas-wrap"><canvas id="chart-age"></canvas></div></div></div>
+  <div class="section-title">Dinamika</div><div class="chart-box"><div class="chart-canvas-wrap"><canvas id="chart-dyn"></canvas></div></div>
+  <script>(function(){ if(typeof Chart==='undefined')return; const palette=['#1E8A5F','#0F2C4C','#B9782B','#4B4B8A','#1E7A8A','#B3342A','#61728A'];
+  function mkBar(id,labels,data){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(!el)return; charts[id]=new Chart(el,{type:'bar',data:{labels,datasets:[{data,backgroundColor:palette}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}}); }
+  function mkPie(id,labels,data){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(!el)return; charts[id]=new Chart(el,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:palette}]},options:{plugins:{legend:{position:'bottom'}}}}); }
+  function mkLine(id,labels,data){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(!el)return; charts[id]=new Chart(el,{type:'line',data:{labels,datasets:[{data,borderColor:'#1E8A5F',backgroundColor:'rgba(30,138,95,.12)',fill:true}]},options:{plugins:{legend:{display:false}}}}); }
+  ${isAdmin?`mkBar('chart-mahalla',${JSON.stringify(Object.keys(byMahalla))},${JSON.stringify(Object.values(byMahalla))});`:''}
+  mkBar('chart-type',${JSON.stringify(Object.keys(byType))},${JSON.stringify(Object.values(byType))});
+  mkPie('chart-status',${JSON.stringify(Object.keys(byStatus))},${JSON.stringify(Object.values(byStatus))});
+  mkBar('chart-age',${JSON.stringify(Object.keys(byAge))},${JSON.stringify(Object.values(byAge))});
+  mkLine('chart-dyn',${JSON.stringify(dynKeys)},${JSON.stringify(dynKeys.map(k=>dynMap[k]))}); })();<\/script>`;
+  return html;
+}
+function renderReports(){ return `<div class="card card-pad"><p>Joriy filtrlar bo'yicha <b>${DB.appeals.length}</b> ta murojaat mavjud.</p><button class="btn btn-primary" onclick="exportExcel(DB.appeals)">⇩ Excel formatida yuklab olish</button></div>`; }
+function renderTypes(){ return `<div class="card card-pad"><div class="toolbar"><input id="new-type" placeholder="Yangi tur nomi" style="flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px"><button class="btn btn-primary" onclick="addType()">Qo'shish</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Nomi</th><th>Holati</th><th></th></tr></thead><tbody>
+  ${DB.appealTypes.map(t=>`<tr><td>${esc(t.nomi)}</td><td>${t.faol?'Faol':'Faolsiz'}</td><td><button class="btn btn-outline btn-sm" onclick="toggleType(${t.id})">${t.faol?'Faolsizlantirish':'Faollashtirish'}</button> <button class="btn btn-danger btn-sm" onclick="removeType(${t.id})">O'chirish</button></td></tr>`).join('')}
+  </tbody></table></div></div>`; }
+function renderMahallas(){ return `<div class="card card-pad"><div class="toolbar"><input id="new-mahalla" placeholder="Yangi mahalla nomi" style="flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px"><button class="btn btn-primary" onclick="addMahalla()">Qo'shish</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Nomi</th><th></th></tr></thead><tbody>${DB.mahallas.map(m=>`<tr><td>${esc(m.nomi)}</td><td><button class="btn btn-danger btn-sm" onclick="removeMahalla(${m.id})">O'chirish</button></td></tr>`).join('')}</tbody></table></div></div>`; }
+function renderHistory(){ return `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>Sana</th><th>Foydalanuvchi</th><th>Amal</th><th>Tafsilot</th></tr></thead><tbody>
+  ${DB.history.map(h=>`<tr><td>${fmtDateTime(h.sana)}</td><td>${esc(h.foydalanuvchi)}</td><td>${esc(h.amal)}</td><td>${esc(h.tafsilot)}</td></tr>`).join('')||`<tr><td colspan="4"><div class="empty-state">Bo'sh</div></td></tr>`}</tbody></table></div></div>`; }
+function renderProfile(){ const u=session.user; return `<div class="card card-pad" style="max-width:520px">
+  <div class="kv"><b>F.I.O</b><span>${esc(u.familiya)} ${esc(u.ism)}</span></div><div class="kv"><b>Mahalla</b><span>${esc(u.mahalla)}</span></div><div class="kv"><b>Login</b><span>${esc(u.login)}</span></div>
+  <div class="form-sub">Aloqa</div><div class="field"><label>Telefon</label><input id="p-telefon" value="${esc(u.telefon)}"></div><div class="field"><label>Email</label><input id="p-email" value="${esc(u.email)}"></div>
+  <button class="btn btn-primary" onclick="saveProfile()">Saqlash</button></div>`; }
+function renderPasswordPage(){ return `<div class="card card-pad" style="max-width:420px"><div id="pw-msg"></div>
+  <div class="field"><label>Joriy parol</label><input id="pw-eski" type="password"></div><div class="field"><label>Yangi parol</label><input id="pw-yangi" type="password"></div><div class="field"><label>Tasdiqlash</label><input id="pw-yangi2" type="password"></div>
+  <button class="btn btn-primary" onclick="changePassword()">O'zgartirish</button></div>`; }
+
+/* ============================= ASOSIY RENDER ============================= */
+function render(){
+  if(!session.user){ renderAuth(); return; }
+  const u=session.user;
+  if(u.rol==='leader' && u.holat!=='tasdiqlangan'){ renderPendingScreen(); return; }
+  let body='';
+  switch(state.page){
+    case 'dashboard': body=renderDashboard(); break;
+    case 'new-appeal': body=renderNewAppealForm(); break;
+    case 'appeals-list': body=renderAppealsList(); break;
+    case 'stats': body=renderStats(); break;
+    case 'reports': body=renderReports(); break;
+    case 'types': body=renderTypes(); break;
+    case 'mahallas': body=renderMahallas(); break;
+    case 'history': body=renderHistory(); break;
+    case 'users': body=renderUsers(); break;
+    case 'profile': body=renderProfile(); break;
+    case 'password': body=renderPasswordPage(); break;
+    default: body=renderDashboard();
+  }
+  document.getElementById('app').innerHTML = `<div class="shell">${sidebarHtml()}<div class="main">${topbarHtml()}<div class="content">${body}
+  <div class="footer-note">Yakkasaroy tumani Yoshlar murojaatlarini tahlil qilish markazi</div></div></div></div>
+  ${state.viewingAppealData?renderAppealDetailModal():''}${state.viewingUser?renderRejectModal():''}`;
+  renderToasts();
+}
+
+/* ============================= ISHGA TUSHIRISH ============================= */
+(async function init(){
+  document.getElementById('app').innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:#61728A">Yuklanmoqda...</div>';
+  await loadPublicData();
+  if(session.token){
+    try{ const me=await api('/users/men'); session.user=mapUser(me); await fetchAppeals(); }
+    catch(e){ session.token=null; session.user=null; localStorage.removeItem('ymtm_token'); }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
